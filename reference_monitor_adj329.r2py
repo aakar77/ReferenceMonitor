@@ -1,0 +1,198 @@
+#adj329
+
+INVBUFFER = []
+PERBUFFER = []
+# Creating the locks for INV and PER both
+mycontext['INVbufferlock'] = createlock()
+mycontext['PERbufferlock'] = createlock()
+
+# Loading the INV and PER buffers with locking mechanism
+for filename in listfiles():
+  if filename.startswith("private_"):
+    fr = openfile(filename, False)
+    
+    if fr.readat(3,0) == "INV": # read
+      mycontext['INVbufferlock'].acquire(bool(1)) 
+      INVBUFFER.append(filename)
+      mycontext['INVbufferlock'].release()
+    
+    elif fr.readat(3,0) == "PER": # read
+      
+      mycontext['PERbufferlock'].acquire(bool(1)) 
+      PERBUFFER.append(filename)
+      mycontext['PERbufferlock'].release() 
+    fr.close()
+
+
+class SecureFile():
+
+  def __init__(self, file, filename):
+    self.file = file
+    self.filename = filename
+    self.filelock = createlock() # create a file lock while initializing
+    
+  def readat(self, sizelimit, offset):
+    
+    # offset minimum value must be 0, its value cannot be less than 0
+    if offset < 0:
+      raise RepyArgumentError("\n Offset minimum value must be 0")
+    else:
+      return self.file.readat(sizelimit, offset)
+
+
+  def writeat(self, data, offset):
+  
+    # offset minimum value must be 0, its value cannot be less than 0
+    if offset < 0 or len(data) <= 0:
+      raise RepyArgumentError("\n Sorry error while writting to file 1\n")
+    else:
+      self.filelock.acquire(True)
+      fileWrite = self.file.writeat(data, offset)
+      data = self.file.readat(3,0)
+      self.filelock.release()
+
+      if self.filename.startswith("private_"):
+        
+        if data == "INV":
+          #acquiring the lock on buffer INV
+          mycontext['INVbufferlock'].acquire(bool(1)) 
+          INVBUFFER.append(self.filename)
+          
+          # remove the file from the PERBUFFER if it exists
+          try:
+            mycontext['PERbufferlock'].acquire(bool(1)) 
+            if self.filename in PERBUFFER:
+              PERBUFFER.remove(self.filename) # check file in per buffer
+              
+            mycontext['PERbufferlock'].release()  
+            mycontext['INVbufferlock'].release() 
+          except ValueError:
+            mycontext['PERbufferlock'].release()
+            mycontext['INVbufferlock'].release()  
+            #self.filelock.release()
+          else:
+           #self.filelock.release()
+
+            # we are writting new data to file so if writting INV, we have to remove the file from PERBuffer
+            if self.filename in PERBUFFER:
+              mycontext['PERbufferlock'].acquire(bool(1)) 
+              PERBUFFER.remove(filename)        
+              mycontext['PERbufferlock'].release() 
+
+          return (fileWrite)
+          
+        elif data == "PER":
+          mycontext['PERbufferlock'].acquire(bool(1)) 
+          PERBUFFER.append(self.filename)
+            # remove the file from the INVBUFFER if it exists
+          try:
+            mycontext['INVbufferlock'].acquire(bool(1)) 
+            if self.filename in INVBUFFER:
+              INVBUFFER.remove(self.filename)
+            mycontext['PERbufferlock'].release()
+            mycontext['INVbufferlock'].release()
+          except ValueError:
+            mycontext['PERbufferlock'].release()
+            mycontext['INVbufferlock'].release()
+              
+            #self.filelock.release()
+          else:
+            #self.filelock.release()
+
+            # we are writting new data to file so if writting INV, we have to remove the file from INVBuffer
+            if filename in INVBUFFER:
+              mycontext['INVbufferlock'].acquire(bool(1)) 
+              INVBUFFER.remove(filename)
+              mycontext['INVbufferlock'].release()
+
+          return fileWrite
+          
+        else:
+
+          # This will be executed if the attacker tries to change the filename and removes private
+          mycontext['INVbufferlock'].acquire(bool(1)) 
+          if ((not self.filename.startswith("private_")) and self.filename in INVBUFFER):
+            INVBUFFER.remove(self.filename)
+          mycontext['INVbufferlock'].release()
+
+          mycontext['PERbufferlock'].acquire(bool(1)) 
+          if ((not self.filename.startswith("private_")) and self.filename in PERBUFFER):
+            PERBUFFER.remove(self.filename)
+          mycontext['PERbufferlock'].release()
+
+          # Normal write to the private file
+          return fileWrite
+      else:
+        return fileWrite
+
+                
+  def close(self):
+    return self.file.close()
+
+def secure_openfile(filename, create):
+  if filename.isupper() == False:
+    file = openfile(filename, create)
+  
+    return SecureFile(file, filename)
+  else:
+    raise RepyArgumentError("\n Filename should only contain lowercase letters\n")
+
+
+def secure_removefile(filename):
+  #updatebuffer(filename)
+  if filename in PERBUFFER:
+    raise RepyArgumentError("Cannot delete this file!\n")
+  removefile(filename) 
+
+
+
+def secure_listfiles():
+  filelist = listfiles()
+  returnlist = []
+
+  for filename in filelist:
+    #updatebuffer(filename)
+    if filename in INVBUFFER:
+      continue
+    returnlist.append(filename)
+  return returnlist
+
+def secure_removefile(filename):
+  #updatebuffer(filename)
+  if filename in PERBUFFER:
+    raise RepyArgumentError("Cannot delete this file!\n")
+  removefile(filename)
+
+# The code here sets up type checking and variable hiding for you. You should not need to change anything below here.
+sec_file_def = {
+  "obj-type":SecureFile,
+  "name":"SecureFile",
+  "readat":{"type":"func","args":((int,long,type(None)),(int,long)),"exceptions":Exception,"return":str,"target":SecureFile.readat},
+  "writeat":{"type":"func","args":(str,(int,long)),"exceptions":Exception,"return":(None),"target":SecureFile.writeat},
+  "close":{"type":"func","args":None,"exceptions":None,"return":(bool,type(None)),"target":SecureFile.close}
+  }
+
+CHILD_CONTEXT_DEF["openfile"] = {"type":"objc",
+                                 "args":(str,bool),
+                                 # any? why Exception in particular?
+                                 "exceptions":Exception,
+                                 "return":sec_file_def,
+                                 "target":secure_openfile
+                                }
+
+CHILD_CONTEXT_DEF["listfiles"] = {"type":"func",
+                                  "args":None,
+                                  "return":list,
+                                  "exceptions":"any",
+                                  "target":secure_listfiles
+                                 }
+
+CHILD_CONTEXT_DEF["removefile"] = {"type":"func",
+                                   "args":(str,),
+                                   "return":None,
+                                   "exceptions":"any",
+                                   "target":secure_removefile
+                                  }
+
+# Execute the user code
+secure_dispatch_module()
