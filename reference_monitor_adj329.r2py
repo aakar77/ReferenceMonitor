@@ -76,7 +76,7 @@ class SecureFile():
             # we are writting new data to file so if writting INV, we have to remove the file from PERBuffer
             if self.filename in PERBUFFER:
               mycontext['PERbufferlock'].acquire(bool(1)) 
-              PERBUFFER.remove(filename)        
+              PERBUFFER.remove(self.filename)        
               mycontext['PERbufferlock'].release() 
 
           return (fileWrite)
@@ -102,7 +102,7 @@ class SecureFile():
             # we are writting new data to file so if writting INV, we have to remove the file from INVBuffer
             if filename in INVBUFFER:
               mycontext['INVbufferlock'].acquire(bool(1)) 
-              INVBUFFER.remove(filename)
+              INVBUFFER.remove(self.filename)
               mycontext['INVbufferlock'].release()
 
           return fileWrite
