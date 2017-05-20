@@ -1,0 +1,38 @@
+# adj329
+# One thread is writting the file containing INV to PER and other thread is converting back to INV and first thread checks whether file is present in listfiles or not
+
+filename = "private_testfile.txt"
+myfile=openfile(filename, True)
+myfile.writeat("INV aa kk rr",0)
+
+
+def threadone():
+
+    if myfile.readat(3,0) == "INV":
+		try:
+			myfile.writeat("PER",0)
+			sleep(4)
+			if filename in listfiles():
+				log("ERROR ATTACK-8| Thread - INV file is appearing in the listfiles(). Buffer not updated \n")
+		except RepyArgumentError:
+			pass
+		finally:
+			exitall()
+
+def threadtwo():
+	try: 
+		myfile.writeat("INV",0)
+	except RepyArgumentError:
+		pass
+	finally:
+		exitall()
+
+def timeout():
+	sleep(12)
+	log("ERROR ATTACK-8| Thread - Reference monitor took too long to respond! \n")
+	exitall()
+
+createthread(threadone)
+createthread(threadtwo)
+createthread(timeout)
+myfile.close()

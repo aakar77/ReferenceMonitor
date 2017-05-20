@@ -1,0 +1,30 @@
+# adj329
+# Here I am rewritting the file having INV to PER and testing whether it is still listed in listfiles?
+# Succeeded in only 5 reference monitors
+
+filename = "private_testfile.txt"
+myfile = openfile(filename,True)
+myfile.writeat("INV", 0)
+
+
+
+if filename.startswith("private_"):
+
+	if myfile.readat(3,0) == "INV":
+
+		myfile.writeat("PER", 0)
+
+		if filename not in listfiles():
+			log("ERROR ATTACK-3| The file having PER is not being showed in listfiles (INV overwritten to PER) \n")
+			# Brinigin back to original file
+			myfile.writeat("INV ",0)
+
+myfile.close()
+
+
+
+
+	
+
+
+

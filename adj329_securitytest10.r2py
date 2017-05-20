@@ -1,0 +1,41 @@
+# adj329
+# One thread is writting the file containing PER to INV and other thread is converting back to PER and first thread tries to remove the file, error if allowed to delete
+
+filename = "private_testfile.txt"
+myfile=openfile(filename, True)
+myfile.writeat("PER aa kk rr",0)
+
+
+def threadone():
+
+    if myfile.readat(3,0) == "PER":
+		try:
+			myfile.writeat("INV",0)
+			sleep(4)
+			myfile.close()
+			removefile(filename)
+		except RepyArgumentError:
+			pass
+		else:
+			log("ERROR ATTACK-10| Thread - Allowed me to delete the file \n")
+
+		finally:
+			exitall()
+
+def threadtwo():
+	try: 
+		myfile.writeat("PER",0)
+	except RepyArgumentError:
+		pass
+	finally:
+		exitall()
+
+def timeout():
+	sleep(12)
+	log("ERROR ATTACK-10| Thread - Reference monitor took too long to respond! \n")
+	exitall()
+
+createthread(threadone)
+createthread(threadtwo)
+createthread(timeout)
+myfile.close()

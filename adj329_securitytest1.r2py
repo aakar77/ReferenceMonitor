@@ -1,0 +1,16 @@
+# adj329 - Attack 1 
+# Attacking at listfile vulnerability, 
+# The file having name starting with private and which has INV as first three charaters is still shown in listfile
+# This attack on INV succeded for 28 reference monitors.
+
+filename = "private_testfile.txt"
+myfile = openfile(filename,True)
+
+if filename.startswith("private_"):
+
+	if myfile.readat(3,0) == "INV":		
+		if filename in listfiles():
+			log("ERROR ATTACK-1| The file having INV is being showed in listfiles \n")
+myfile.close()
+
+

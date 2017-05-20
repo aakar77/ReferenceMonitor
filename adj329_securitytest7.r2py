@@ -1,0 +1,29 @@
+# adj329
+# One thread is writting the file containing PER -> to INV and other file is checking whether the file is appearing in listfiles or not.
+# This attack succeded for 7-8 cases
+
+filename = "private_testfile.txt"
+myfile=openfile(filename, True)
+myfile.writeat("PER",0)
+
+
+def threadone():
+
+    if myfile.readat(3,0) == "PER":
+		try:
+			myfile.writeat("INV",0)
+			sleep(4)
+		except RepyArgumentError:
+			pass
+		finally:
+			exitall()
+
+def threadtwo():
+ 
+	if filename in listfiles():
+		log("ERROR ATTACK-7| Thread - INV File is appearing in the listfiles() \n")
+
+createthread(threadone)
+createthread(threadtwo)
+myfile.close()
+

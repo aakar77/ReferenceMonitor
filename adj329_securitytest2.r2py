@@ -1,0 +1,31 @@
+# adj329 - Attack 2
+# Attacking PER file vulnerability, by deleting the normal PER file.
+
+
+
+filename = "private_testfile.txt"
+myfile = openfile(filename,True)
+myfile.writeat("PER abcd efghwer", 0)
+
+
+if filename.startswith("private_"):
+
+	if myfile.readat(3,0) == "PER":		
+		try:
+			myfile.close()
+			removefile(filename)
+		except RepyArgumentError:
+			pass
+		else:
+			log("ERROR ATTACK-2| DELETION ALLOWED on The private file having in begining PER ")
+			#Rebuilding the deleted file
+
+
+				
+
+
+
+
+
+
+

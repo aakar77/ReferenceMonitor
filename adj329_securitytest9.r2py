@@ -1,0 +1,40 @@
+# adj329
+# One thread is writting the file containing INV to PER and other thread converts it to INV again, First thread tries to find the file in listfiles. 
+
+
+filename = "private_testfile.txt"
+myfile=openfile(filename, True)
+myfile.writeat("INV aa kk rr",0)
+
+
+def threadone():
+
+    if myfile.readat(3,0) == "INV":
+		try:
+			myfile.writeat("PER",0)
+			sleep(4)
+			if filename in listfiles():
+				log("ERROR ATTACK-9| Thread - multithreading not handled properly, File name should not apperar in listfiles, as thread 2 changed it to INV \n")	
+		except RepyArgumentError:
+			pass
+		finally:
+			exitall()
+
+def threadtwo():
+	try:
+		if myfile.readat(3,0) == "PER":
+			myfile.writeat("INV",0)
+	except RepyArgumentError:
+		pass
+	finally:
+		exitall
+
+def timeout():
+	sleep(12)
+	log("ERROR ATTACK-9| Thread - Reference monitor took too long to respond! \n")
+	exitall()
+
+createthread(threadone)
+createthread(threadtwo)
+createthread(timeout)
+myfile.close()

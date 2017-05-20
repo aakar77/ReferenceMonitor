@@ -1,0 +1,29 @@
+ #adj329
+# Here I am rewritting the file having PER to INV and testing whether it is allowed to be deleted or not
+# Succeeded in only 5 reference monitors
+
+filename = "private_testfile.txt"
+myfile = openfile(filename,True)
+myfile.writeat("PER abc def",0)
+
+if filename.startswith("private_"):
+
+	if myfile.readat(3,0) == "PER":
+		try:
+			myfile.writeat("INV ",0)
+			myfile.close()
+			removefile(filename)
+		except RepyArgumentError:
+			myfile.close()
+			log("ERROR ATTACK-6| DELETION NOT ALLOWED on the file having INV in begining, (PER overwritten to INV) \n")
+		else:
+			
+			
+
+
+
+
+	
+
+
+
